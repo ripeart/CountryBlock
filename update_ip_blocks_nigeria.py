@@ -4,8 +4,8 @@ import os
 
 # Constants
 IP_DENY_URL = 'https://www.ipdeny.com/ipblocks/data/aggregated/ng-aggregated.zone'
-REPO_NAME = 'ripeart/CountryBlock'  # Updated with the correct repository name
-FILE_PATH = 'ip_blocks/ng_aggregated.zone'  # Adjust this path as needed
+REPO_NAME = 'ripeart/CountryBlock'  # Ensure this is correct
+FILE_PATH = 'ip_blocks/ng_aggregated.zone'  # Adjust to the correct file path
 COMMIT_MESSAGE = 'Auto-update IP block list for Nigeria'
 
 # Get GitHub token from environment variables
@@ -32,8 +32,12 @@ def update_github_file(repo_name, file_path, content, commit_message, token):
     repo = github.get_repo(repo_name)
 
     try:
-        # Try to get the file's current content
         file_contents = repo.get_contents(file_path)
+
+        # Check if the content is the same as the existing file
+        if file_contents.decoded_content.decode() == content:
+            print(f"No changes detected in {file_path}. Skipping update.")
+            return
 
         # Update the existing file
         repo.update_file(
@@ -43,10 +47,18 @@ def update_github_file(repo_name, file_path, content, commit_message, token):
             file_contents.sha
         )
         print(f"Successfully updated {file_path} in {repo_name}")
-        
+
     except Exception as e:
-        if '404' in str(e):  # If the file doesn't exist, create a new file
+        if '404' in str(e):  # If the file or directory doesn't exist
             try:
+                # Create missing directories by creating an empty file first
+                directories = file_path.split('/')[:-1]
+                for i in range(1, len(directories) + 1):
+                    path = '/'.join(directories[:i]) + '/.gitkeep'
+                    if not repo.get_contents(path, ref='main'):
+                        repo.create_file(path, 'Create missing directory', '')
+                
+                # Now create the file
                 repo.create_file(
                     file_path,
                     commit_message,
@@ -54,7 +66,7 @@ def update_github_file(repo_name, file_path, content, commit_message, token):
                 )
                 print(f"Successfully created {file_path} in {repo_name}")
             except Exception as create_error:
-                print(f"Error creating file: {create_error}")
+                print(f"Error creating file or directory: {create_error}")
         else:
             print(f"Error updating file: {e}")
 

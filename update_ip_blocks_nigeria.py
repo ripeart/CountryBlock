@@ -18,12 +18,10 @@ def cidr_to_regex(cidr):
     Converts a CIDR notation IP to a regex pattern.
     """
     try:
-        # Convert CIDR to a list of IP addresses
         network = ipaddress.ip_network(cidr, strict=False)
         start_ip = network[0]
         end_ip = network[-1]
 
-        # Create regex from start and end IPs
         start_regex = start_ip.exploded.replace('.', r'\.')
         end_regex = end_ip.exploded.replace('.', r'\.')
         return f"{start_regex}|{end_regex}"
@@ -39,30 +37,30 @@ def fetch_ip_blocks(url):
     """
     try:
         response = requests.get(url)
-        response.raise_for_status()  # Raises HTTPError if the status is not 200
-        
-        # Split the IP blocks and convert each to regex
+        response.raise_for_status()
+
+        # Convert IP blocks to regex
         ip_blocks = response.text.strip().splitlines()
         regex_patterns = [cidr_to_regex(block) for block in ip_blocks if cidr_to_regex(block)]
 
-        # Join all regex patterns into one string
+        # Join regex patterns
         combined_regex = '|'.join(regex_patterns)
 
-        # Split combined regex into rows of 1,000 characters or fewer
+        # Split into rows of 1,000 characters or less
         regex_rows = []
-        while len(combined_regex) > 0:
-            row = combined_regex[:1000]
+        while combined_regex:
+            # Find a suitable split point
+            if len(combined_regex) <= 1000:
+                regex_rows.append(combined_regex)
+                break
             
-            # Ensure row ends cleanly without splitting in the middle of a pattern
-            if '|' in row:
-                last_pipe = row.rfind('|')
+            # Find the last '|' before 1,000 characters
+            split_pos = combined_regex.rfind('|', 0, 1000)
+            if split_pos == -1:
+                split_pos = 1000  # Split at 1,000 characters if no '|' found
 
-                # If the regex row ends with a '|', ensure it's not at the end of the string
-                if last_pipe != -1 and last_pipe < len(row) - 1:
-                    row = row[:last_pipe]
-
-            regex_rows.append(row)
-            combined_regex = combined_regex[len(row):]
+            regex_rows.append(combined_regex[:split_pos])
+            combined_regex = combined_regex[split_pos + 1:]  # Move past the split point
 
         return regex_rows
 

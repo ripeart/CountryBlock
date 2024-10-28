@@ -24,7 +24,7 @@ jobs:
         pip install requests PyGithub
       
     - name: Run the script
-      run: python update_ip_blocks.py
+      run: python update_ip_blocks_nigeria.py
 
     - name: Commit changes
       run: |

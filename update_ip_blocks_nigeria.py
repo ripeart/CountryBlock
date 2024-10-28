@@ -19,7 +19,7 @@ def fetch_ip_blocks(url):
     """
     try:
         response = requests.get(url)
-        response.raise_for_status()  # Raises HTTPError if the status is not 200
+        response.raise_for_status()
         return response.text
     except requests.exceptions.RequestException as e:
         print(f"Error fetching IP blocks: {e}")
@@ -34,11 +34,11 @@ def update_github_file(repo_name, file_path, content, commit_message, token, bra
         repo = github.get_repo(repo_name)
         print(f"Connected to repository: {repo_name}")
 
-        # Check if the file exists
+        # Check if the file already exists
         try:
             file_contents = repo.get_contents(file_path, ref=branch)
 
-            # Check if content is the same as the existing file
+            # If content is the same, no need to update
             if file_contents.decoded_content.decode() == content:
                 print(f"No changes detected in {file_path}. Skipping update.")
                 return
@@ -54,22 +54,11 @@ def update_github_file(repo_name, file_path, content, commit_message, token, bra
             print(f"Successfully updated {file_path} in {repo_name} on branch {branch}")
 
         except Exception as e:
-            if '404' in str(e):  # File or directory not found
+            if '404' in str(e):
                 print(f"File {file_path} not found. Attempting to create it.")
-                
-                # Create missing directories by creating .gitkeep files first
-                directories = file_path.split('/')[:-1]
-                for i in range(1, len(directories) + 1):
-                    path = '/'.join(directories[:i]) + '/.gitkeep'
-                    try:
-                        repo.get_contents(path, ref=branch)
-                    except:
-                        repo.create_file(
-                            path,
-                            f"Create directory {path}",
-                            '',
-                            branch=branch
-                        )
+
+                # Create the directory structure if missing
+                create_directories(repo, file_path, branch)
 
                 # Create the new file
                 repo.create_file(
@@ -86,7 +75,32 @@ def update_github_file(repo_name, file_path, content, commit_message, token, bra
     except Exception as e:
         print(f"Error accessing repository {repo_name} or creating file: {e}")
 
+def create_directories(repo, file_path, branch):
+    """
+    Create missing directories in the repository.
+    """
+    directories = file_path.split('/')[:-1]
+    for i in range(1, len(directories) + 1):
+        path = '/'.join(directories[:i]) + '/.gitkeep'
+        try:
+            repo.get_contents(path, ref=branch)
+        except:
+            try:
+                repo.create_file(
+                    path,
+                    f"Create directory {path}",
+                    '',
+                    branch=branch
+                )
+                print(f"Created directory {path}")
+            except Exception as e:
+                print(f"Error creating directory {path}: {e}")
+
 def main():
+    if not GITHUB_TOKEN:
+        print("Error: GITHUB_TOKEN not found in environment variables.")
+        return
+
     try:
         # Fetch the latest IP block list from IPdeny
         ip_blocks = fetch_ip_blocks(IP_DENY_URL)

@@ -22,9 +22,10 @@ jobs:
       run: |
         pip install requests PyGithub
 
-    - name: Run the script
-      run: python update_ip_blocks.py
-      continue-on-error: true  # Continue even if the script fails with exit code 1
+    - name: Run the update script
+      run: |
+        python ./update_ip_blocks_nigeria.py
+      continue-on-error: true
 
     - name: Check if changes were made
       run: |

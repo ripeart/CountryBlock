@@ -8,7 +8,7 @@ IP_DENY_URL = 'https://www.ipdeny.com/ipblocks/data/aggregated/ng-aggregated.zon
 REPO_NAME = 'ripeart/CountryBlock'
 FILE_PATH = 'ip_blocks/ng_aggregated_regex.txt'
 BRANCH = 'main'
-COMMIT_MESSAGE = 'Auto-update IP block list for Nigeria (regex)'
+COMMIT_MESSAGE = 'Auto-update IP block list for Nigeria (regex, split)'
 
 # Get GitHub token from environment variables
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
@@ -35,7 +35,7 @@ def cidr_to_regex(cidr):
 def fetch_ip_blocks(url):
     """
     Fetches the IP block data from the provided URL and converts it to regex patterns.
-    Returns the content as a string of regex patterns.
+    Splits the regex into rows of 1,000 characters or less.
     """
     try:
         response = requests.get(url)
@@ -46,8 +46,22 @@ def fetch_ip_blocks(url):
         regex_patterns = [cidr_to_regex(block) for block in ip_blocks if cidr_to_regex(block)]
 
         # Join all regex patterns into one string
-        regex_content = '|'.join(regex_patterns)
-        return regex_content
+        combined_regex = '|'.join(regex_patterns)
+
+        # Split combined regex into rows of 1,000 characters or fewer
+        regex_rows = []
+        while len(combined_regex) > 0:
+            row = combined_regex[:1000]
+            
+            # Ensure row ends cleanly without splitting in the middle of a pattern
+            if '|' in row and combined_regex[1000] != '|':
+                last_pipe = row.rfind('|')
+                row = row[:last_pipe]
+
+            regex_rows.append(row)
+            combined_regex = combined_regex[len(row):]
+
+        return regex_rows
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching IP blocks: {e}")
@@ -62,12 +76,15 @@ def update_github_file(repo_name, file_path, content, commit_message, token, bra
         repo = github.get_repo(repo_name)
         print(f"Connected to repository: {repo_name}")
 
+        # Join content rows with newline characters
+        file_content = '\n'.join(content)
+
         # Check if the file exists
         try:
             file_contents = repo.get_contents(file_path, ref=branch)
 
             # Check if content is the same as the existing file
-            if file_contents.decoded_content.decode() == content:
+            if file_contents.decoded_content.decode() == file_content:
                 print(f"No changes detected in {file_path}. Skipping update.")
                 return
 
@@ -75,7 +92,7 @@ def update_github_file(repo_name, file_path, content, commit_message, token, bra
             repo.update_file(
                 file_contents.path,
                 commit_message,
-                content,
+                file_content,
                 file_contents.sha,
                 branch=branch
             )
@@ -103,7 +120,7 @@ def update_github_file(repo_name, file_path, content, commit_message, token, bra
                 repo.create_file(
                     file_path,
                     commit_message,
-                    content,
+                    file_content,
                     branch=branch
                 )
                 print(f"Successfully created {file_path} in {repo_name} on branch {branch}")

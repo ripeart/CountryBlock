@@ -5,6 +5,9 @@ on:
     - cron: '0 0 * * *'  # Runs daily at midnight UTC
   workflow_dispatch:  # Allows manual triggering of the workflow
 
+permissions:
+  contents: write  # Ensure the token has write access to contents
+
 jobs:
   update-ip-blocks:
     runs-on: ubuntu-latest
@@ -25,5 +28,5 @@ jobs:
 
       - name: Run the IP block update script
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Make sure this line is correct
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python ./update_ip_blocks_nigeria.py

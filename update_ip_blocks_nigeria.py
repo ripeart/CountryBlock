@@ -54,9 +54,12 @@ def fetch_ip_blocks(url):
             row = combined_regex[:1000]
             
             # Ensure row ends cleanly without splitting in the middle of a pattern
-            if '|' in row and combined_regex[1000] != '|':
+            if '|' in row:
                 last_pipe = row.rfind('|')
-                row = row[:last_pipe]
+
+                # If the regex row ends with a '|', ensure it's not at the end of the string
+                if last_pipe != -1 and last_pipe < len(row) - 1:
+                    row = row[:last_pipe]
 
             regex_rows.append(row)
             combined_regex = combined_regex[len(row):]

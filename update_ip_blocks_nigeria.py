@@ -5,7 +5,7 @@ import os
 # Constants
 IP_DENY_URL = 'https://www.ipdeny.com/ipblocks/data/aggregated/ng-aggregated.zone'
 REPO_NAME = 'ripeart/CountryBlock'  # Ensure this is correct
-FILE_PATH = 'ip_blocks/ng_aggregated.zone'  # Adjust to the correct file path
+FILE_PATH = 'ip_blocks/ng_aggregated.zone.txt'  # Adjust to the correct file path
 COMMIT_MESSAGE = 'Auto-update IP block list for Nigeria'
 
 # Get GitHub token from environment variables
